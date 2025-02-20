@@ -1,42 +1,76 @@
 import 'package:flutter/material.dart';
+import 'api_service.dart';
+import 'product_model.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Application name
-      title: 'Flutter Hello World',
-      // Application theme data, you can set the colors for the application as
-      // you want
-      theme: ThemeData(
-        // useMaterial3: false,
-        primarySwatch: Colors.blue,
-      ),
-      // A widget which will be started on application startup
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      home: ProductListScreen(),
     );
   }
 }
 
-class MyHomePage extends StatelessWidget {
-  final String title;
-  const MyHomePage({super.key, required this.title});  
+class ProductListScreen extends StatefulWidget {
+  @override
+  _ProductListScreenState createState() => _ProductListScreenState();
+}
+
+class _ProductListScreenState extends State<ProductListScreen> {
+  List<Product> _products = [];
+  bool _isLoading = false;
+
+  Future<void> _loadProducts() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      List<Product> products = await ApiService.fetchProducts();
+      setState(() {
+        _products = products;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error al cargar los productos")),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // The title text which will be shown on the action bar
-        title: Text(title),
-      ),
-      body: Center(
-        child: Text(
-          'Hello, World!',
-        ),
+      appBar: AppBar(title: Text("Lista de Productos")),
+      body: Column(
+        children: [
+          ElevatedButton(
+            onPressed: _isLoading ? null : _loadProducts,
+            child: Text(_isLoading ? "Cargando..." : "Cargar Productos"),
+          ),
+          Expanded(
+            child: _products.isEmpty
+                ? Center(child: Text("Presiona el botón para ver productos"))
+                : ListView.builder(
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(_products[index].name),
+                        subtitle: Text(
+                            "\$${_products[index].price.toStringAsFixed(2)}"),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
